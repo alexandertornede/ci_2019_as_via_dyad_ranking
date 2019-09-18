@@ -19,12 +19,12 @@ public class KendallsTauBasedOnApache implements Metric {
 
 		for (int i = 0; i < groundTruth.size(); i++) {
 			Pair<Integer, Double> pair = groundTruth.get(i);
-			groundTruthArray[pipelineIds.indexOf(pair.getX())] = i;
+			groundTruthArray[pipelineIds.indexOf(pair.getX())] = pair.getY();
 		}
 
 		for (int i = 0; i < predicted.size(); i++) {
 			Pair<Integer, Double> pair = predicted.get(i);
-			predictedArray[pipelineIds.indexOf(pair.getX())] = i;
+			predictedArray[pipelineIds.indexOf(pair.getX())] = pair.getY();
 		}
 
 		return kC.correlation(groundTruthArray, predictedArray);
