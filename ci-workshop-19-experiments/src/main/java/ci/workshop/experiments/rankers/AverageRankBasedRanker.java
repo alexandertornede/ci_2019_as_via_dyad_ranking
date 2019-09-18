@@ -38,7 +38,7 @@ public class AverageRankBasedRanker implements IdBasedRanker {
 				pipelineToStatisticsMap.get(pipelineId).addValue(rankOfPipelineOnDataset);
 			}
 		}
-		averageRankOfPipelines = pipelineIds.stream().map(id -> new Pair<>(id, pipelineToStatisticsMap.get(id).getMean())).sorted(Comparator.comparingDouble(p -> p.getY())).collect(Collectors.toList());
+		averageRankOfPipelines = pipelineIds.stream().map(id -> new Pair<>(id, -pipelineToStatisticsMap.get(id).getMean())).sorted(Comparator.comparingDouble(p -> ((Pair<Integer, Double>) p).getY()).reversed()).collect(Collectors.toList());
 	}
 
 	@Override
