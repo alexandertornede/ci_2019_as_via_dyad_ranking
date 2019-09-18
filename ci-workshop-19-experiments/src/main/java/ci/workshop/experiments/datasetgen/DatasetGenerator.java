@@ -2,7 +2,6 @@ package ci.workshop.experiments.datasetgen;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -46,6 +45,10 @@ public class DatasetGenerator {
 	public int getRandomSeed(int splitnum, int numTrainingPairsIndex) {
 		return splitnum * numTrainingPairs.length + numTrainingPairsIndex;
 	}
+	
+	public static String getFileName(int splitnum, int numTrainingPairs) {
+		return String.format("dyad_dataset_%d_%d.txt", splitnum, numTrainingPairs);
+	}
 
 	public DyadRankingDataset generateTrainingDataset(int splitnum, int numTrainingPairsIndex)
 			throws IOException, URISyntaxException {
@@ -58,6 +61,9 @@ public class DatasetGenerator {
 
 		// for every instance, sample numTrainingPairs as the train data
 		trainInstances.forEach(datasetId -> {
+			Vector instanceDatasetFeatures = new DenseDoubleVector(
+					datasetFeatures.getFeatureRepresentationForDataset(datasetId));
+			
 			for (int i = 0; i < numTrainingPairs[numTrainingPairsIndex]; i++) {
 				// sample first pipeline id and performance
 				int pipeline1Id = pipelineIds.get(random.nextInt(pipelineIds.size()));
@@ -74,8 +80,6 @@ public class DatasetGenerator {
 				}
 
 				// create dyads
-				Vector instanceDatasetFeatures = new DenseDoubleVector(
-						datasetFeatures.getFeatureRepresentationForDataset(datasetId));
 				Vector instance1Features = new DenseDoubleVector(
 						this.pipelineFeatures.getFeatureRepresentationForPipeline(pipeline1Id));
 				Dyad dyad1 = new Dyad(instanceDatasetFeatures, instance1Features);
@@ -101,7 +105,7 @@ public class DatasetGenerator {
 		return new DyadRankingDataset(dyadRankingInstances);
 	}
 
-	public static void main(String[] args) throws FileNotFoundException, IOException, TrainingException, URISyntaxException {
+	public static void main(String[] args) throws IOException, TrainingException, URISyntaxException {
 		SQLAdapter sqlAdapter = new SQLAdapter(args[0], args[1], args[2], args[3]);
 		DatasetGenerator generator = new DatasetGenerator(new int[] { 10, 20, 30 },
 				new DatasetFeatureRepresentationMap(sqlAdapter, "dataset_metafeatures_mirror"),
