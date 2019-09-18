@@ -10,6 +10,7 @@ import ai.libs.jaicore.basic.sets.Pair;
 import ai.libs.jaicore.ml.dyadranking.algorithm.PLNetDyadRanker;
 import ai.libs.jaicore.ml.tsc.distances.EuclideanDistance;
 import ci.workshop.experiments.loss.KendallsTauBasedOnApache;
+import ci.workshop.experiments.loss.KendallsTauBasedOnApacheAndRanks;
 import ci.workshop.experiments.loss.Metric;
 import ci.workshop.experiments.loss.PerformanceDifferenceOfAverageOnTopK;
 import ci.workshop.experiments.loss.PerformanceDifferenceOfBestOnTopK;
@@ -25,14 +26,14 @@ import ci.workshop.experiments.utils.Util;
 
 public class ExperimentRunner {
 
-	private static String databaseName = "pgotfml_draco"; // "conference_ci-workshop2019"
-	private static String tableName = "a_all_results_mac";
+	private static String databaseName = "conference_ci-workshop2019"; // "conference_ci-workshop2019"
+	private static String tableName = "all_results_rank_all_with_values_with_smo";
 
 	private static String pathToStoredRankingModels = "rankersMCCV";
 
 	public static void main(String[] args) throws Exception {
 
-		// int[] numberOfPairwiseSamplesPerDatasetSizes = { 2750 };
+		// int[] numberOfPairwiseSamplesPerDatasetSizes = { 100, 1000, 1900, 2750 };
 		int[] numberOfPairwiseSamplesPerDatasetSizes = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2250, 2500, 2750 };
 
 		int experimentNumber = 0;
@@ -44,17 +45,17 @@ public class ExperimentRunner {
 
 			SQLAdapter sqlAdapter = new SQLAdapter("isys-db.cs.upb.de:3306", "user", "password", databaseName, true);
 
-			PipelineFeatureRepresentationMap pipelineFeatureMap = new PipelineFeatureRepresentationMap(sqlAdapter, "dyad_dataset_approach_5_performance_samples_full"); // "dyad_dataset_approach_5_performance_samples_with_SMO"
+			PipelineFeatureRepresentationMap pipelineFeatureMap = new PipelineFeatureRepresentationMap(sqlAdapter, "dyad_dataset_approach_5_performance_samples_with_SMO"); // "dyad_dataset_approach_5_performance_samples_with_SMO"
 			DatasetFeatureRepresentationMap datasetFeatureMap = new DatasetFeatureRepresentationMap(sqlAdapter, "dataset_metafeatures_mirror"); // "dataset_metafeatures_mirror"
-			PipelinePerformanceStorage pipelinePerformanceStorage = new PipelinePerformanceStorage(sqlAdapter, "pipeline_performance_5_classifiers"); // "pipeline_performance_5_classifiers_with_SMO"
+			PipelinePerformanceStorage pipelinePerformanceStorage = new PipelinePerformanceStorage(sqlAdapter, "pipeline_performance_5_classifiers_with_SMO"); // "pipeline_performance_5_classifiers_with_SMO"
 
 			AveragePerformanceRanker averageRankRanker = new AveragePerformanceRanker(pipelinePerformanceStorage);
 			KnnRanker onennRanker = new KnnRanker(pipelinePerformanceStorage, datasetFeatureMap, new EuclideanDistance(), 1);
-			// KnnRanker twonnRanker = new KnnRanker(pipelinePerformanceStorage, datasetFeatureMap, new EuclideanDistance(), 2);
+			KnnRanker twonnRanker = new KnnRanker(pipelinePerformanceStorage, datasetFeatureMap, new EuclideanDistance(), 2);
 			AverageRankBasedRanker averageRankBasedRanker = new AverageRankBasedRanker(pipelinePerformanceStorage);
 
-			// List<IdBasedRanker> rankers = new ArrayList<>(Arrays.asList(averageRankRanker, onennRanker, twonnRanker, averageRankBasedRanker));
-			List<IdBasedRanker> rankers = new ArrayList<>(Arrays.asList(averageRankRanker, onennRanker, averageRankBasedRanker));
+			List<IdBasedRanker> rankers = new ArrayList<>(Arrays.asList(averageRankRanker, onennRanker, twonnRanker, averageRankBasedRanker));
+			// List<IdBasedRanker> rankers = new ArrayList<>(Arrays.asList(averageRankRanker, onennRanker, averageRankBasedRanker));
 
 			for (int numberOfPairwiseSamplesPerDataset : numberOfPairwiseSamplesPerDatasetSizes) {
 				PLNetDyadRanker dyadRanker = getDyadRankerForNumberOfPairwiseSamples(numberOfPairwiseSamplesPerDataset, datasetTestSplitId);
@@ -62,14 +63,13 @@ public class ExperimentRunner {
 				rankers.add(dyadRankingBasedRanker);
 			}
 
-			List<Metric> metrics = Arrays.asList(new KendallsTauBasedOnApache(), new PerformanceDifferenceOfAverageOnTopK(3), new PerformanceDifferenceOfBestOnTopK(3), new PerformanceDifferenceOfAverageOnTopK(5),
-					new PerformanceDifferenceOfBestOnTopK(5));
-			int amountOfPipelinesToRank = 20; // TODO 20
-			int numberOfTestPipelineSets = 20; // TODO 100
+			List<Metric> metrics = Arrays.asList(new KendallsTauBasedOnApache(), new KendallsTauBasedOnApacheAndRanks(), new PerformanceDifferenceOfAverageOnTopK(3), new PerformanceDifferenceOfBestOnTopK(3),
+					new PerformanceDifferenceOfAverageOnTopK(5), new PerformanceDifferenceOfBestOnTopK(5));
+			int numberOfTestPipelineSets = 1; // 1, since we rank all
 
 			for (IdBasedRanker ranker : rankers) {
 				Experiment experiment = new Experiment(pipelinePerformanceStorage, sqlAdapter, databaseName, tableName);
-				experiment.runExperiment(datasetTestSplitId, trainindDatasetIds, testDatasetIds, ranker, metrics, amountOfPipelinesToRank, numberOfTestPipelineSets);
+				experiment.runExperiment(datasetTestSplitId, trainindDatasetIds, testDatasetIds, ranker, metrics, numberOfTestPipelineSets);
 				System.out.println("Experiment " + experimentNumber + " / " + (10 * rankers.size()) + " done.");
 				experimentNumber++;
 			}

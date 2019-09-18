@@ -7,8 +7,7 @@ import org.apache.commons.math3.stat.correlation.KendallsCorrelation;
 
 import ai.libs.jaicore.basic.sets.Pair;
 
-public class KendallsTauBasedOnApache implements Metric {
-
+public class KendallsTauBasedOnApacheAndRanks implements Metric {
 	@Override
 	public double evaluate(List<Pair<Integer, Double>> groundTruth, List<Pair<Integer, Double>> predicted) {
 		KendallsCorrelation kC = new KendallsCorrelation();
@@ -19,12 +18,12 @@ public class KendallsTauBasedOnApache implements Metric {
 
 		for (int i = 0; i < groundTruth.size(); i++) {
 			Pair<Integer, Double> pair = groundTruth.get(i);
-			groundTruthArray[pipelineIds.indexOf(pair.getX())] = pair.getY();
+			groundTruthArray[pipelineIds.indexOf(pair.getX())] = i;
 		}
 
 		for (int i = 0; i < predicted.size(); i++) {
 			Pair<Integer, Double> pair = predicted.get(i);
-			predictedArray[pipelineIds.indexOf(pair.getX())] = pair.getY();
+			predictedArray[pipelineIds.indexOf(pair.getX())] = i;
 		}
 
 		return kC.correlation(groundTruthArray, predictedArray);
@@ -32,7 +31,6 @@ public class KendallsTauBasedOnApache implements Metric {
 
 	@Override
 	public String getName() {
-		return "kendalls_apache";
+		return "kendalls_apache_ranks";
 	}
-
 }

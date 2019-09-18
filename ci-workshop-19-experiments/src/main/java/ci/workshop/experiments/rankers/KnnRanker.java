@@ -1,5 +1,6 @@
 package ci.workshop.experiments.rankers;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,7 +28,7 @@ public class KnnRanker implements IdBasedRanker {
 
 	@Override
 	public void train(List<Integer> trainingDatasetIds) {
-		this.trainingDatasetIds = trainingDatasetIds;
+		this.trainingDatasetIds = new ArrayList<>(trainingDatasetIds);
 	}
 
 	@Override
