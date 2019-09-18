@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.stream.Collectors;
 
 import ai.libs.jaicore.basic.SQLAdapter;
 import ai.libs.jaicore.basic.kvstore.IKVStore;
@@ -38,7 +38,7 @@ public class Experiment {
 		createResultsTableIfNecessary();
 	}
 
-	public void runExperiment(int datasetSplit, List<Integer> trainingDatasets, List<Integer> testDatasets, IdBasedRanker ranker, List<Metric> metrics, int amountOfPipelinesToRank, int numberOfTestPipelineSets) throws SQLException {
+	public void runExperiment(int datasetSplit, List<Integer> trainingDatasets, List<Integer> testDatasets, IdBasedRanker ranker, List<Metric> metrics, int numberOfTestPipelineSets) throws SQLException {
 		List<Integer> pipelineIds = pipelinePerformanceStorage.getPipelineIds();
 
 		OracleRanker oracleRanker = new OracleRanker(pipelinePerformanceStorage);
@@ -46,10 +46,11 @@ public class Experiment {
 		ranker.train(trainingDatasets);
 
 		for (int testPipelineSet = 0; testPipelineSet < numberOfTestPipelineSets; testPipelineSet++) {
-			Random random = new Random(datasetSplit * numberOfTestPipelineSets + testPipelineSet); // TODO testPipelineSet
-			List<Integer> pipelinesToRank = randomlySelectPipelinesFromList(pipelineIds, amountOfPipelinesToRank, random);
-
 			for (int datasetId : testDatasets) {
+				// restrict pipelines we want to rank to those where we know the ground truth
+				List<Integer> pipelinesToRank = pipelineIds.stream().filter(i -> pipelinePerformanceStorage.getPerformanceForPipelineWithIdOnDatasetWithId(i, datasetId) > 0).collect(Collectors.toList());// randomlySelectPipelinesFromList(pipelineIds,
+				// amountOfPipelinesToRank, random);
+
 				List<Pair<Integer, Double>> groundTruth = oracleRanker.getRankingOfPipelinesOnDataset(pipelinesToRank, datasetId);
 
 				List<Pair<Integer, Double>> predictedRanking = ranker.getRankingOfPipelinesOnDataset(pipelinesToRank, datasetId);
@@ -71,17 +72,17 @@ public class Experiment {
 
 	}
 
-	private List<Integer> randomlySelectPipelinesFromList(List<Integer> pipelineIds, int amount, Random random) {
-		List<Integer> randomlySelectedPipelines = new ArrayList<>(amount);
-		while (randomlySelectedPipelines.size() < amount) {
-			int randomIndex = random.nextInt(pipelineIds.size());
-			int randomPipelineId = pipelineIds.get(randomIndex);
-			if (!randomlySelectedPipelines.contains(randomPipelineId)) {
-				randomlySelectedPipelines.add(randomPipelineId);
-			}
-		}
-		return randomlySelectedPipelines;
-	}
+	// private List<Integer> randomlySelectPipelinesFromList(List<Integer> pipelineIds, int amount, Random random) {
+	// List<Integer> randomlySelectedPipelines = new ArrayList<>(amount);
+	// while (randomlySelectedPipelines.size() < amount) {
+	// int randomIndex = random.nextInt(pipelineIds.size());
+	// int randomPipelineId = pipelineIds.get(randomIndex);
+	// if (!randomlySelectedPipelines.contains(randomPipelineId)) {
+	// randomlySelectedPipelines.add(randomPipelineId);
+	// }
+	// }
+	// return randomlySelectedPipelines;
+	// }
 
 	private void createResultsTableIfNecessary() throws SQLException {
 		List<IKVStore> resultSet = sqlAdapter.getResultsOfQuery("SHOW TABLES");
