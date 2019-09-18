@@ -1,15 +1,9 @@
 package ci.workshop.experiments.evaluator;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import ai.libs.jaicore.basic.SQLAdapter;
 import ai.libs.jaicore.basic.sets.Pair;
@@ -27,6 +21,7 @@ import ci.workshop.experiments.rankers.KnnRanker;
 import ci.workshop.experiments.storage.DatasetFeatureRepresentationMap;
 import ci.workshop.experiments.storage.PipelineFeatureRepresentationMap;
 import ci.workshop.experiments.storage.PipelinePerformanceStorage;
+import ci.workshop.experiments.utils.Util;
 
 public class ExperimentRunner {
 
@@ -42,7 +37,7 @@ public class ExperimentRunner {
 
 		int experimentNumber = 0;
 		for (int datasetTestSplitId = 0; datasetTestSplitId < 10; datasetTestSplitId++) {
-			Pair<List<Integer>, List<Integer>> trainTestSplit = getTrainingAndTestDatasetSplitsForSplitId(datasetTestSplitId);
+			Pair<List<Integer>, List<Integer>> trainTestSplit = Util.getTrainingAndTestDatasetSplitsForSplitId(datasetTestSplitId);
 
 			List<Integer> trainindDatasetIds = trainTestSplit.getX();
 			List<Integer> testDatasetIds = trainTestSplit.getY();
@@ -90,35 +85,6 @@ public class ExperimentRunner {
 		// System.out.println("Loading: " + filePath);
 		dyadRanker.loadModelFromFile(filePath);
 		return dyadRanker;
-	}
-
-	private static Pair<List<Integer>, List<Integer>> getTrainingAndTestDatasetSplitsForSplitId(int datasetSplitId) throws IOException, URISyntaxException {
-
-		List<String> fileContent = Files.readAllLines(Paths.get("splits/" + datasetSplitId + ".json"));
-
-		StringBuilder stringBuilder = new StringBuilder();
-		for (String line : fileContent) {
-			stringBuilder.append(line);
-		}
-
-		JSONObject jsonObject = new JSONObject(stringBuilder.toString());
-
-		JSONArray trainDatasetArray = jsonObject.getJSONArray("trainDatasets");
-
-		List<Integer> trainingDatasetIds = new ArrayList<>(trainDatasetArray.length());
-		for (int i = 0; i < trainDatasetArray.length(); i++) {
-			trainingDatasetIds.add(trainDatasetArray.getInt(i));
-		}
-
-		JSONArray testDatasetArray = jsonObject.getJSONArray("testDatasets");
-
-		List<Integer> testDatasetIds = new ArrayList<>(testDatasetArray.length());
-		for (int i = 0; i < testDatasetArray.length(); i++) {
-			testDatasetIds.add(testDatasetArray.getInt(i));
-		}
-
-		return new Pair<>(trainingDatasetIds, testDatasetIds);
-
 	}
 
 }
