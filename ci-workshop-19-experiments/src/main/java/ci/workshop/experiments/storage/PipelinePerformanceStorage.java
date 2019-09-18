@@ -34,7 +34,7 @@ public class PipelinePerformanceStorage {
 				int datasetId = kvStore.getAsInt(DATASET_ID_COLUMN_NAME);
 
 				String zeroOneLossAsString = kvStore.getAsString(ACCURACY_COLUMN_NAME);
-				double zeroOneLoss = 0;
+				double zeroOneLoss = 1;
 				if (zeroOneLossAsString != null && !zeroOneLossAsString.equalsIgnoreCase("null")) {
 					zeroOneLoss = Double.parseDouble(zeroOneLossAsString);
 				}
