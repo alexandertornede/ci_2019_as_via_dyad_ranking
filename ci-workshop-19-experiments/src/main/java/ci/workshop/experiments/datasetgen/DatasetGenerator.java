@@ -1,9 +1,9 @@
 package ci.workshop.experiments.datasetgen;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,9 +13,7 @@ import ai.libs.jaicore.basic.SQLAdapter;
 import ai.libs.jaicore.basic.sets.Pair;
 import ai.libs.jaicore.math.linearalgebra.DenseDoubleVector;
 import ai.libs.jaicore.math.linearalgebra.Vector;
-import ai.libs.jaicore.ml.core.exception.TrainingException;
 import ai.libs.jaicore.ml.dyadranking.Dyad;
-import ai.libs.jaicore.ml.dyadranking.algorithm.featuretransform.FeatureTransformPLDyadRanker;
 import ai.libs.jaicore.ml.dyadranking.dataset.DyadRankingDataset;
 import ai.libs.jaicore.ml.dyadranking.dataset.DyadRankingInstance;
 import ai.libs.jaicore.ml.dyadranking.dataset.IDyadRankingInstance;
@@ -34,7 +32,6 @@ public class DatasetGenerator {
 
 	public DatasetGenerator(int[] numTrainingPairs, DatasetFeatureRepresentationMap datasetFeatures,
 			PipelineFeatureRepresentationMap pipelineFeatures, PipelinePerformanceStorage pipelinePerformances) {
-		System.out.println("Initialized maps");
 		this.pipelineIds = pipelinePerformances.getPipelineIds();
 		this.numTrainingPairs = numTrainingPairs;
 		this.datasetFeatures = datasetFeatures;
@@ -45,7 +42,7 @@ public class DatasetGenerator {
 	public int getRandomSeed(int splitnum, int numTrainingPairsIndex) {
 		return splitnum * numTrainingPairs.length + numTrainingPairsIndex;
 	}
-	
+
 	public static String getFileName(int splitnum, int numTrainingPairs) {
 		return String.format("dyad_dataset_%d_%d.txt", splitnum, numTrainingPairs);
 	}
@@ -63,7 +60,7 @@ public class DatasetGenerator {
 		trainInstances.forEach(datasetId -> {
 			Vector instanceDatasetFeatures = new DenseDoubleVector(
 					datasetFeatures.getFeatureRepresentationForDataset(datasetId));
-			
+
 			for (int i = 0; i < numTrainingPairs[numTrainingPairsIndex]; i++) {
 				// sample first pipeline id and performance
 				int pipeline1Id = pipelineIds.get(random.nextInt(pipelineIds.size()));
@@ -105,30 +102,25 @@ public class DatasetGenerator {
 		return new DyadRankingDataset(dyadRankingInstances);
 	}
 
-	public static void main(String[] args) throws IOException, TrainingException, URISyntaxException {
+	public static void main(String[] args) throws IOException, URISyntaxException {
+		// make sure folder exists
+		new File("datasets").mkdirs();
+		
+		// assume first args are host user pw db
 		SQLAdapter sqlAdapter = new SQLAdapter(args[0], args[1], args[2], args[3]);
-		DatasetGenerator generator = new DatasetGenerator(new int[] { 10, 20, 30 },
+		int[] numTrainingPairs = { 100, 1000, 1900, 2750 };
+		DatasetGenerator generator = new DatasetGenerator(numTrainingPairs,
 				new DatasetFeatureRepresentationMap(sqlAdapter, "dataset_metafeatures_mirror"),
-				new PipelineFeatureRepresentationMap(sqlAdapter, "dyad_dataset_approach_5_performance_samples_full"),
-				new PipelinePerformanceStorage(sqlAdapter, "pipeline_performance_5_classifiers"));
-		System.out.println("Initialized generator");
-		DyadRankingDataset dataset = generator.generateTrainingDataset(0, 0);
+				new PipelineFeatureRepresentationMap(sqlAdapter,
+						"dyad_dataset_approach_5_performance_samples_with_SMO"),
+				new PipelinePerformanceStorage(sqlAdapter, "pipeline_performance_5_classifiers_with_SMO"));
 
-		System.out.println("Generated data");
-		String fileName = "split_0_100_samples.data";
-		try (FileOutputStream stream = new FileOutputStream(new File(fileName))) {
-			dataset.serialize(stream);
-		}
-		System.out.println("wrote data");
-
-		try (FileInputStream stream = new FileInputStream(new File(fileName))) {
-			DyadRankingDataset data = new DyadRankingDataset();
-			data.deserialize(stream);
-			System.out.println("read data");
-			
-			// test if training is possible
-			FeatureTransformPLDyadRanker ranker = new FeatureTransformPLDyadRanker();
-			ranker.train(data);
+		for (int i = 0; i < 10; i++) {
+			for (int j = 0; j < numTrainingPairs.length; j++) {
+				DyadRankingDataset dataset = generator.generateTrainingDataset(i, j);
+				OutputStream out = new FileOutputStream(new File("datasets/" + DatasetGenerator.getFileName(i, numTrainingPairs[j])));
+				dataset.serialize(out);
+			}
 		}
 	}
 }

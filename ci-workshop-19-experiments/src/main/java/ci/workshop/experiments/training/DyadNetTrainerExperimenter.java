@@ -59,6 +59,7 @@ public class DyadNetTrainerExperimenter implements IExperimentSetEvaluator {
 			ranker.train(dataset);
 
 			// save net
+			new File(experimenterConfig.getRankerFolder()).mkdirs();
 			String rankerLocation = experimenterConfig.getRankerFolder() + "/" + String.format("plnet_%d_%d", splitNum, numTrainingPairs);
 			logger.info("Saving PLNet to {}.zip", rankerLocation);
 			ranker.saveModelToFile(rankerLocation);
@@ -79,7 +80,9 @@ public class DyadNetTrainerExperimenter implements IExperimentSetEvaluator {
 		IDatabaseConfig dbConfig = ConfigFactory.create(IDatabaseConfig.class, properties);
 		IExperimentDatabaseHandle dbHandle = new ExperimenterMySQLHandle(dbConfig);
 		ExperimentRunner runner = new ExperimentRunner(experimenterConfig, new DyadNetTrainerExperimenter(), dbHandle);
+		System.out.println("conducting experiment");
 		runner.randomlyConductExperiments(1);
+		System.out.println("experiment conducted");
 	}
 
 }
